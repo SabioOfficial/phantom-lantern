@@ -1,0 +1,28 @@
+{
+	"schemaVersion": 1,
+	"id": "phantom-lantern",
+	"version": "${version}",
+	"name": "Phantom Lantern",
+	"description": "A lantern forged from phantom membrane and soul fire, with ghostly abilities.",
+	"authors": [
+		"Sabio"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/phantom-lantern/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.sabio.phantomlantern.PhantomLantern"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

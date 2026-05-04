@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "M",
+    "L"
+  ],
+  "key": {
+    "M": "minecraft:phantom_membrane",
+    "L": "minecraft:soul_lantern"
+  },
+  "result": {
+    "id": "phantom-lantern:phantom_lantern",
+    "count": 1
+  }
+}

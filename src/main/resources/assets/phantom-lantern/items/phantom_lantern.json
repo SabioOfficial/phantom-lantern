@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "phantom-lantern:item/phantom_lantern"
+  }
+}

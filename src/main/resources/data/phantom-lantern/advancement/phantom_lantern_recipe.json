@@ -1,0 +1,39 @@
+{
+  "display": {
+    "icon": {
+      "id": "phantom-lantern:phantom_lantern"
+    },
+    "title": {
+      "translate": "advancements.phantom-lantern.phantom_lantern_recipe.title"
+    },
+    "description": {
+      "translate": "advancements.phantom-lantern.phantom_lantern_recipe.description"
+    },
+    "frame": "goal",
+    "announce_to_chat": true,
+    "show_toast": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_phantom_membrane": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {"items": ["minecraft:phantom_membrane"]}
+        ]
+      }
+    },
+    "has_soul_lantern": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {"items": ["minecraft:soul_lantern"]}
+        ]
+      }
+    }
+  },
+  "requirements": [["has_phantom_membrane"], ["has_soul_lantern"]],
+  "rewards": {
+    "recipes": ["phantom-lantern:phantom_lantern"]
+  }
+}
