@@ -14,9 +14,18 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.sabio.phantomlantern.logic.PhantomLanternLogic;
+import net.sabio.phantomlantern.logic.SoulChargeHelper;
+import org.jspecify.annotations.NonNull;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 public class PhantomLanternItem extends Item {
     private static final int BARRIER_COOLDOWN_TICKS = 400;
@@ -24,6 +33,22 @@ public class PhantomLanternItem extends Item {
 
     public PhantomLanternItem(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public void appendHoverText(@NonNull ItemStack stack, @NonNull TooltipContext context, @NonNull TooltipDisplay display, @NonNull Consumer<Component> builder, @NonNull TooltipFlag flag) {
+        int souls = SoulChargeHelper.getSouls(stack);
+        String col = souls > 30 ? "§5" : souls > 10 ? "§6" : "§c";
+        builder.accept(Component.literal(col + "Souls: " + souls + "/" + SoulChargeHelper.MAX_SOULS));
+        builder.accept(Component.literal("§8(+1/sec passive | +10 on haunt kill)"));
+        builder.accept(Component.literal("§7--------------------"));
+        builder.accept(Component.literal((isUnlocked(0) ? "§dRight-click" : "§8[Locked - 30 Essence]") + "§7: Soul Vision §8(2 souls/sec)"));
+        builder.accept(Component.literal((isUnlocked(1) ? "§dSneak" : "§8[Locked - 60 Essence]") + "§7: Phantom Step §5(7 souls)"));
+        builder.accept(Component.literal((isUnlocked(2) ? "§dSneak+Right-click" : "§8[Locked - 100 Essence]") + "§7: Spectral Barrier §5(5×mobs, min 15)"));
+    }
+
+    public static boolean isUnlocked(int abilityIndex) {
+        return true;
     }
 
     private void sendActionBar(Player player, Component message) {
@@ -36,22 +61,40 @@ public class PhantomLanternItem extends Item {
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         if (level.isClientSide()) return InteractionResult.SUCCESS;
 
+        ItemStack stack = player.getItemInHand(hand);
+
         if (player.isShiftKeyDown()) {
-            if (player.getCooldowns().isOnCooldown(this.getDefaultInstance())) {
+            if (!isUnlocked(2)) {
+                sendActionBar(player, Component.literal("§cUnlock Spectral Barrier first! (100 Essence)"));
+            } else if (player.getCooldowns().isOnCooldown(this.getDefaultInstance())) {
                 sendActionBar(player, Component.literal("§7Spectral Barrier is recharging..."));
             } else {
-                activateSpectralBarrier(level, player);
+                activateSpectralBarrier(level, player, stack);
                 player.getCooldowns().addCooldown(this.getDefaultInstance(), BARRIER_COOLDOWN_TICKS);
             }
         } else {
-            net.sabio.phantomlantern.logic.PhantomLanternLogic.toggleSoulVision(player);
+            if (!isUnlocked(0)) {
+                sendActionBar(player, Component.literal("§cUnlock Soul Vision first! (30 Essence)"));
+            } else {
+                PhantomLanternLogic.toggleSoulVision(player);
+            }
         }
 
         return InteractionResult.SUCCESS;
     }
 
-    private void activateSpectralBarrier(Level level, Player player) {
+    private void activateSpectralBarrier(Level level, Player player, ItemStack stack) {
         Vec3 center = player.position().add(0, 0.5, 0);
+
+        AABB box = AABB.ofSize(center, BARRIER_RADIUS * 2, BARRIER_RADIUS * 2, BARRIER_RADIUS * 2);
+        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player && e.isAlive());
+
+        int cost = Math.max(15, targets.size() * 5);
+
+        if (!SoulChargeHelper.tryConsume(stack, cost)) {
+            sendActionBar(player, Component.literal("§cNot enough souls! Need " + cost + ", have " + SoulChargeHelper.getSouls(stack) + "."));
+            return;
+        }
 
         if (level instanceof ServerLevel serverLevel) {
             for (int i = 0; i < 72; i++) {
@@ -75,13 +118,9 @@ public class PhantomLanternItem extends Item {
             }
         }
 
-        AABB box = AABB.ofSize(center, BARRIER_RADIUS * 2, BARRIER_RADIUS * 2, BARRIER_RADIUS * 2);
-        level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player && e.isAlive())
-                .forEach(mob -> mob.addEffect(
-                        new MobEffectInstance(MobEffects.SLOWNESS, 100, 1)
-                ));
+        targets.forEach(mob -> mob.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 1)));
 
         level.playSound(null, player.blockPosition(), SoundEvents.PHANTOM_FLAP, SoundSource.PLAYERS, 1.0f, 0.6f);
-        sendActionBar(player, Component.literal("§5✦ Spectral Barrier!"));
+        sendActionBar(player, Component.literal("§5✦ Spectral Barrier! §7(" + targets.size() + " mob(s), cost " + cost + " souls)"));
     }
 }

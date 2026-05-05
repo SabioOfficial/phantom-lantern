@@ -16,6 +16,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -38,6 +39,11 @@ public class PhantomLanternLogic {
                 for (ServerPlayer player : List.copyOf(level.players())) {
                     tickSoulVision(player, level);
                     tickPhantomStep(player, level);
+
+                    if (level.getGameTime() % 20 == 0) {
+                        ItemStack lantern = getLanternStack(player);
+                        if (lantern != null) SoulChargeHelper.add(lantern, 1);
+                    }
                 }
             }
             tickHaunt(server);
@@ -58,6 +64,12 @@ public class PhantomLanternLogic {
 
     private static boolean isHoldingLantern(Player player) {
         return !(player.getMainHandItem().getItem() instanceof PhantomLanternItem) && !(player.getOffhandItem().getItem() instanceof PhantomLanternItem);
+    }
+
+    public static ItemStack getLanternStack(Player player) {
+        if (player.getMainHandItem().getItem() instanceof PhantomLanternItem) return player.getMainHandItem();
+        if (player.getOffhandItem().getItem() instanceof PhantomLanternItem) return player.getOffhandItem();
+        return null;
     }
 
     public static void toggleSoulVision(Player player) {
@@ -87,6 +99,15 @@ public class PhantomLanternLogic {
         level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player && e.isAlive())
                 .forEach(mob -> mob.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false)));
 
+        if (level.getGameTime() % 10 == 0) {
+            ItemStack lantern = getLanternStack(player);
+            if (lantern == null || !SoulChargeHelper.tryConsume(lantern, 1)) {
+                SOUL_VISION_ACTIVE.remove(player.getUUID());
+                sendActionBar(player, Component.literal("§cSoul vision faded - you are out of souls!"));
+                return;
+            }
+        }
+
         if (level.getGameTime() % 15 == 0) {
             for (int i = 0; i < 6; i++) {
                 double angle = Math.random() * Math.PI * 2;
@@ -110,6 +131,19 @@ public class PhantomLanternLogic {
         }
 
         if (!player.isShiftKeyDown() || isHoldingLantern(player)) return;
+
+        if (!PhantomLanternItem.isUnlocked(1)) {
+            sendActionBar(player, Component.literal("§cUnlock Phantom Step first! (60 Essence)"));
+            PHANTOM_STEP_CD.put(id, 40);
+            return;
+        }
+
+        ItemStack lantern = getLanternStack(player);
+        if (lantern == null || !SoulChargeHelper.tryConsume(lantern, 7)) {
+            sendActionBar(player, Component.literal("§cNot enough souls for Phantom Step! (needs 7)"));
+            PHANTOM_STEP_CD.put(id, 40);
+            return;
+        }
 
         Vec3 look = player.getLookAngle();
         Vec3 dir  = new Vec3(look.x, 0, look.z);
@@ -193,6 +227,14 @@ public class PhantomLanternLogic {
             }
 
             if (mob == null) {
+                ServerPlayer attacker = server.getPlayerList().getPlayer(state.attackerUUID());
+                if (attacker != null) {
+                    ItemStack lantern = getLanternStack(attacker);
+                    if (lantern != null) {
+                        SoulChargeHelper.add(lantern, 10);
+                        sendActionBar(attacker, Component.literal("§5+10 souls from haunt kill!"));
+                    }
+                }
                 iter.remove(); continue;
             }
 
