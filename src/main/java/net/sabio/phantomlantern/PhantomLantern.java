@@ -16,5 +16,6 @@ public class PhantomLantern implements ModInitializer {
 		ModItems.register();
 		ModItems.registerEvents();
 		PhantomLanternLogic.register();
+		PhantomLanternNetwork.register();
 	}
 }

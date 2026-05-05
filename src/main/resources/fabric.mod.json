@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"net.sabio.phantomlantern.PhantomLantern"
+		],
+		"client": [
+			"net.sabio.phantomlantern.PhantomLanternClient"
 		]
 	},
 	"depends": {

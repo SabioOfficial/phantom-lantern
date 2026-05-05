@@ -20,7 +20,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import net.sabio.phantomlantern.item.PhantomLanternItem;
 
 import java.util.*;
@@ -31,18 +30,20 @@ public class PhantomLanternLogic {
     private record HauntState(UUID attackerUUID, int remainingTicks) {}
     private static final Map<UUID, HauntState> HAUNTED_MOBS = new HashMap<>();
 
-    private static final Map<UUID, Integer> PHANTOM_STEP_CD = new HashMap<>();
-
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerLevel level : server.getAllLevels()) {
                 for (ServerPlayer player : List.copyOf(level.players())) {
                     tickSoulVision(player, level);
-                    tickPhantomStep(player, level);
 
                     if (level.getGameTime() % 20 == 0) {
                         ItemStack lantern = getLanternStack(player);
-                        if (lantern != null) SoulChargeHelper.add(lantern, 1);
+                        if (lantern != null) {
+                            int souls = SoulChargeHelper.getSouls(lantern);
+                            String soulsCol = souls > 50 ? "§5" : souls > 20 ? "§6" : "§c";
+                            sendActionBar(player, Component.literal(soulsCol + "⚡ " + souls + "/" + SoulChargeHelper.MAX_SOULS + " souls §7| §3Essence: §b0"));
+                            SoulChargeHelper.add(lantern, 1);
+                        }
                     }
                 }
             }
@@ -52,11 +53,10 @@ public class PhantomLanternLogic {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             UUID id = handler.player.getUUID();
             SOUL_VISION_ACTIVE.remove(id);
-            PHANTOM_STEP_CD.remove(id);
         });
     }
 
-    private static void sendActionBar(Player player, Component message) {
+    public static void sendActionBar(Player player, Component message) {
         if (player instanceof ServerPlayer sp) {
             sp.connection.send(new ClientboundSetActionBarTextPacket(message));
         }
@@ -119,65 +119,6 @@ public class PhantomLanternLogic {
                         1, 0, 0.04, 0, 0.01);
             }
         }
-    }
-
-    private static void tickPhantomStep(ServerPlayer player, ServerLevel level) {
-        UUID id = player.getUUID();
-
-        if (PHANTOM_STEP_CD.containsKey(id)) {
-            int cd = PHANTOM_STEP_CD.merge(id, -1, Integer::sum);
-            if (cd <= 0) PHANTOM_STEP_CD.remove(id);
-            return;
-        }
-
-        if (!player.isShiftKeyDown() || isHoldingLantern(player)) return;
-
-        if (!PhantomLanternItem.isUnlocked(1)) {
-            sendActionBar(player, Component.literal("§cUnlock Phantom Step first! (60 Essence)"));
-            PHANTOM_STEP_CD.put(id, 40);
-            return;
-        }
-
-        ItemStack lantern = getLanternStack(player);
-        if (lantern == null || !SoulChargeHelper.tryConsume(lantern, 7)) {
-            sendActionBar(player, Component.literal("§cNot enough souls for Phantom Step! (needs 7)"));
-            PHANTOM_STEP_CD.put(id, 40);
-            return;
-        }
-
-        Vec3 look = player.getLookAngle();
-        Vec3 dir  = new Vec3(look.x, 0, look.z);
-        if (dir.lengthSqr() < 0.001) return;
-        dir = dir.normalize();
-
-        double px = player.getX(), py = player.getY(), pz = player.getZ();
-
-        BlockPos near = BlockPos.containing(px + dir.x * 1.3, py + 0.1, pz + dir.z * 1.3);
-        BlockPos far  = BlockPos.containing(px + dir.x * 2.5, py + 0.1, pz + dir.z * 2.5);
-
-        boolean nearSolid = hasCollision(level, near) || hasCollision(level, near.above());
-        boolean farClear  = !hasCollision(level, far)  && !hasCollision(level, far.above());
-
-        if (!nearSolid || !farClear) return;
-
-        double tx = px + dir.x * 3.0;
-        double tz = pz + dir.z * 3.0;
-        player.teleportTo(tx, py, tz);
-
-        for (int i = 0; i < 20; i++) {
-            level.sendParticles(
-                    ParticleTypes.SOUL,
-                    tx + (Math.random() - 0.5) * 0.8,
-                    py + Math.random() * 2.0,
-                    tz + (Math.random() - 0.5) * 0.8,
-                    1, 0, 0.04, 0, 0.01
-            );
-        }
-
-        level.playSound(null, BlockPos.containing(tx, py, tz), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.5f, 1.6f);
-
-        sendActionBar(player, Component.literal("§5✦ Phantom Step!"));
-        PHANTOM_STEP_CD.put(id, 40);
     }
 
     private static boolean hasCollision(Level level, BlockPos pos) {

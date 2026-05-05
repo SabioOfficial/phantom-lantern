@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class PhantomLanternItem extends Item {
-    private static final int BARRIER_COOLDOWN_TICKS = 400;
     private static final double BARRIER_RADIUS = 5.0;
 
     public PhantomLanternItem(Properties properties) {
@@ -43,7 +42,7 @@ public class PhantomLanternItem extends Item {
         builder.accept(Component.literal("§8(+1/sec passive | +10 on haunt kill)"));
         builder.accept(Component.literal("§7--------------------"));
         builder.accept(Component.literal((isUnlocked(0) ? "§dRight-click" : "§8[Locked - 30 Essence]") + "§7: Soul Vision §8(2 souls/sec)"));
-        builder.accept(Component.literal((isUnlocked(1) ? "§dSneak" : "§8[Locked - 60 Essence]") + "§7: Phantom Step §5(7 souls)"));
+        builder.accept(Component.literal((isUnlocked(1) ? "§dR" : "§8[Locked - 60 Essence]") + "§7: Phantom Step §5(7 souls)"));
         builder.accept(Component.literal((isUnlocked(2) ? "§dSneak+Right-click" : "§8[Locked - 100 Essence]") + "§7: Spectral Barrier §5(5×mobs, min 15)"));
     }
 
@@ -66,11 +65,8 @@ public class PhantomLanternItem extends Item {
         if (player.isShiftKeyDown()) {
             if (!isUnlocked(2)) {
                 sendActionBar(player, Component.literal("§cUnlock Spectral Barrier first! (100 Essence)"));
-            } else if (player.getCooldowns().isOnCooldown(this.getDefaultInstance())) {
-                sendActionBar(player, Component.literal("§7Spectral Barrier is recharging..."));
             } else {
                 activateSpectralBarrier(level, player, stack);
-                player.getCooldowns().addCooldown(this.getDefaultInstance(), BARRIER_COOLDOWN_TICKS);
             }
         } else {
             if (!isUnlocked(0)) {
