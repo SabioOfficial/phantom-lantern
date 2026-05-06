@@ -13,7 +13,7 @@
     "announce_to_chat": true,
     "show_toast": true,
     "hidden": false,
-    "background": "minecraft:item/lantern"
+    "background": "minecraft:item/phantom_membrane"
   },
   "criteria": {
     "has_phantom_membrane": {
