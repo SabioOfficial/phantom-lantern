@@ -31,7 +31,7 @@ public class PhantomLanternNetwork {
     private static void handlePhantomStep(ServerPlayer player) {
         ServerLevel level = player.level();
 
-        if (!PhantomLanternItem.isUnlocked(1)) {
+        if (!PhantomLanternItem.isUnlocked(player, 1)) {
             PhantomLanternLogic.sendActionBar(player, Component.literal("§cUnlock Phantom Step first! (60 Essence)"));
             return;
         }

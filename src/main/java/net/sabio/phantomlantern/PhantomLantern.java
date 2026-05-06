@@ -2,6 +2,7 @@ package net.sabio.phantomlantern;
 
 import net.fabricmc.api.ModInitializer;
 
+import net.sabio.phantomlantern.logic.EssenceHelper;
 import net.sabio.phantomlantern.logic.PhantomLanternLogic;
 import net.sabio.phantomlantern.registry.ModItems;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ public class PhantomLantern implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		EssenceHelper.init();
 		ModItems.register();
 		ModItems.registerEvents();
 		PhantomLanternLogic.register();

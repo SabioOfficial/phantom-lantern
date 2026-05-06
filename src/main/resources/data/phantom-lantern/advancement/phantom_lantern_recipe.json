@@ -12,7 +12,8 @@
     "frame": "goal",
     "announce_to_chat": true,
     "show_toast": true,
-    "hidden": false
+    "hidden": false,
+    "background": "minecraft:item/lantern"
   },
   "criteria": {
     "has_phantom_membrane": {

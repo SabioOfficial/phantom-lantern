@@ -27,7 +27,7 @@ import java.util.*;
 public class PhantomLanternLogic {
     private static final Set<UUID> SOUL_VISION_ACTIVE = new HashSet<>();
 
-    private record HauntState(UUID attackerUUID, int remainingTicks) {}
+    private record HauntState(UUID attackerUUID, int remainingTicks, float mobMaxHealth) {}
     private static final Map<UUID, HauntState> HAUNTED_MOBS = new HashMap<>();
 
     public static void register() {
@@ -40,8 +40,9 @@ public class PhantomLanternLogic {
                         ItemStack lantern = getLanternStack(player);
                         if (lantern != null) {
                             int souls = SoulChargeHelper.getSouls(lantern);
+                            int essence = EssenceHelper.getEssence(player);
                             String soulsCol = souls > 50 ? "§5" : souls > 20 ? "§6" : "§c";
-                            sendActionBar(player, Component.literal(soulsCol + "⚡ " + souls + "/" + SoulChargeHelper.MAX_SOULS + " souls §7| §3Essence: §b0"));
+                            sendActionBar(player, Component.literal(soulsCol + "⚡ " + souls + "/" + SoulChargeHelper.MAX_SOULS + " souls §7| §3✦ " + essence + " essence"));
                             SoulChargeHelper.add(lantern, 1);
                         }
                     }
@@ -53,6 +54,7 @@ public class PhantomLanternLogic {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             UUID id = handler.player.getUUID();
             SOUL_VISION_ACTIVE.remove(id);
+            EssenceHelper.remove(id);
         });
     }
 
@@ -127,7 +129,7 @@ public class PhantomLanternLogic {
     }
 
     public static void startHaunt(Player attacker, LivingEntity target) {
-        HAUNTED_MOBS.put(target.getUUID(), new HauntState(attacker.getUUID(), 300));
+        HAUNTED_MOBS.put(target.getUUID(), new HauntState(attacker.getUUID(), 300, target.getMaxHealth()));
 
         sendActionBar(attacker, Component.literal("§5✦ Haunting §d" + target.getName().getString() + "§5!"));
 
@@ -171,15 +173,27 @@ public class PhantomLanternLogic {
                 ServerPlayer attacker = server.getPlayerList().getPlayer(state.attackerUUID());
                 if (attacker != null) {
                     ItemStack lantern = getLanternStack(attacker);
-                    if (lantern != null) {
-                        SoulChargeHelper.add(lantern, 10);
+                    if (lantern != null) SoulChargeHelper.add(lantern, 10);
+
+                    int essenceGain = EssenceHelper.calculateReward(state.mobMaxHealth());
+                    if (essenceGain > 0) {
+                        EssenceHelper.addEssence(attacker, essenceGain);
+                        int total = EssenceHelper.getEssence(attacker);
+
+                        String unlockMsg = "";
+                        if (total >= EssenceHelper.UNLOCK_BARRIER && total - essenceGain < EssenceHelper.UNLOCK_BARRIER) unlockMsg = " | §a✦ Spectral Barrier unlocked!";
+                        else if (total >= EssenceHelper.UNLOCK_PHANTOM_STEP && total - essenceGain < EssenceHelper.UNLOCK_PHANTOM_STEP) unlockMsg = " | §a✦ Phantom Step unlocked!";
+                        else if (total >= EssenceHelper.UNLOCK_SOUL_VISION && total - essenceGain < EssenceHelper.UNLOCK_SOUL_VISION) unlockMsg = " | §a✦ Soul Vision unlocked!";
+
+                        sendActionBar(attacker, Component.literal("§5+10 souls  §3+" + essenceGain + " essence §7(" + total + " total)" + unlockMsg));
+                    } else {
                         sendActionBar(attacker, Component.literal("§5+10 souls from haunt kill!"));
                     }
                 }
                 iter.remove(); continue;
             }
 
-            entry.setValue(new HauntState(state.attackerUUID(), remaining));
+            entry.setValue(new HauntState(state.attackerUUID(), remaining, state.mobMaxHealth()));
 
             if (remaining % 5 == 0) {
                 mobLevel.sendParticles(

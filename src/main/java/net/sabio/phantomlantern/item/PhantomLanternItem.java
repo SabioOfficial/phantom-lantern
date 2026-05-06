@@ -20,6 +20,7 @@ import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.sabio.phantomlantern.logic.EssenceHelper;
 import net.sabio.phantomlantern.logic.PhantomLanternLogic;
 import net.sabio.phantomlantern.logic.SoulChargeHelper;
 import org.jspecify.annotations.NonNull;
@@ -41,13 +42,13 @@ public class PhantomLanternItem extends Item {
         builder.accept(Component.literal(col + "Souls: " + souls + "/" + SoulChargeHelper.MAX_SOULS));
         builder.accept(Component.literal("§8(+1/sec passive | +10 on haunt kill)"));
         builder.accept(Component.literal("§7--------------------"));
-        builder.accept(Component.literal((isUnlocked(0) ? "§dRight-click" : "§8[Locked - 30 Essence]") + "§7: Soul Vision §8(2 souls/sec)"));
-        builder.accept(Component.literal((isUnlocked(1) ? "§dR" : "§8[Locked - 60 Essence]") + "§7: Phantom Step §5(7 souls)"));
-        builder.accept(Component.literal((isUnlocked(2) ? "§dSneak+Right-click" : "§8[Locked - 100 Essence]") + "§7: Spectral Barrier §5(5×mobs, min 15)"));
+        builder.accept(Component.literal("§8[30 Essence] §7Right-click: Soul Vision §8(2 souls/sec)"));
+        builder.accept(Component.literal("§8[60 Essence] §7R: Phantom Step §5(7 souls)"));
+        builder.accept(Component.literal("§8[100 Essence] §7Sneak+Right-click: Spectral Barrier §5(Varies)"));
     }
 
-    public static boolean isUnlocked(int abilityIndex) {
-        return true;
+    public static boolean isUnlocked(ServerPlayer player, int abilityIndex) {
+        return EssenceHelper.isAbilityUnlocked(player, abilityIndex);
     }
 
     private void sendActionBar(Player player, Component message) {
@@ -61,15 +62,16 @@ public class PhantomLanternItem extends Item {
         if (level.isClientSide()) return InteractionResult.SUCCESS;
 
         ItemStack stack = player.getItemInHand(hand);
+        ServerPlayer serverPlayer = (ServerPlayer) player;
 
         if (player.isShiftKeyDown()) {
-            if (!isUnlocked(2)) {
+            if (!isUnlocked(serverPlayer, 2)) {
                 sendActionBar(player, Component.literal("§cUnlock Spectral Barrier first! (100 Essence)"));
             } else {
                 activateSpectralBarrier(level, player, stack);
             }
         } else {
-            if (!isUnlocked(0)) {
+            if (!isUnlocked(serverPlayer, 0)) {
                 sendActionBar(player, Component.literal("§cUnlock Soul Vision first! (30 Essence)"));
             } else {
                 PhantomLanternLogic.toggleSoulVision(player);
