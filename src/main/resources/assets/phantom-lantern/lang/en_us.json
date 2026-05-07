@@ -1,5 +1,7 @@
 {
   "item.phantom-lantern.phantom_lantern": "Phantom Lantern",
   "advancements.phantom-lantern.phantom_lantern_recipe.title": "From Beyond the Veil",
-  "advancements.phantom-lantern.phantom_lantern_recipe.description": "Combine a Phantom Membrane with a Soul Lantern to forge a lantern that bridges the living and the dead."
+  "advancements.phantom-lantern.phantom_lantern_recipe.description": "Combine a Phantom Membrane with a Soul Lantern to forge a lantern that bridges the living and the dead.",
+  "key.category.phantom-lantern.phantom-lantern": "Phantom Lantern",
+  "key.phantom-lantern.phantom_step": "Phantom Step"
 }
