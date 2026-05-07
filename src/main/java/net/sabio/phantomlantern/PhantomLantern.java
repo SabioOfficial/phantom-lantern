@@ -15,7 +15,7 @@ public class PhantomLantern implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		EssenceHelper.init();
-		ModItems.register();
+		ModItems.initialize();
 		ModItems.registerEvents();
 		PhantomLanternLogic.register();
 		PhantomLanternNetwork.register();
